@@ -158,9 +158,9 @@ void cullBodies(std::vector<std::unique_ptr<Body>>& bodies, int winWidth, int wi
 
     // Update visibility flags instead of removing bodies
     for (auto& body : bodies) {
-        body->isVisible = !(body->pos.x + body->radius < minX || 
+        body->isVisible = !(body->pos.x + body->radius < minX ||
                             body->pos.x - body->radius > maxX ||
-                            body->pos.y + body->radius < minY || 
+                            body->pos.y + body->radius < minY ||
                             body->pos.y - body->radius > maxY);
     }
 }
@@ -285,14 +285,14 @@ void drawLightRays(SDL_Renderer* renderer, std::vector<std::unique_ptr<Body>>& b
     }
     // If no star is found, do nothing.
     if (!star) return;
-    
+
     // Convert the star's position to screen coordinates (for possible use in rendering).
     SDL_FPoint starScreen = toScreen(star->pos, winWidth, winHeight);
-    
+
     const int rayCount = 360;       // Total number of rays to draw in a full circle.
     const float rayLength = 600.0f;   // Length (in world units) to which each ray extends.
     SDL_SetRenderDrawColor(renderer, star->color.r, star->color.g, star->color.b, 30); // Set a light of the color of star with transparency for the rays.
-    
+
     // Loop through and draw each ray.
     for (int i = 0; i < rayCount; ++i) {
         // Determine the angle for this ray to evenly cover 360 degrees.
@@ -300,7 +300,7 @@ void drawLightRays(SDL_Renderer* renderer, std::vector<std::unique_ptr<Body>>& b
         Vec2 dir = { std::cos(angle), std::sin(angle) }; // Unit vector in the ray's direction.
         Vec2 rayStart = star->pos;                // All rays originate at the star's position.
         Vec2 rayEnd = star->pos + dir * rayLength;  // Compute the default end point of the ray.
-        
+
         // Check if the ray intersects any other body.
         for (const auto& bodyPtr : bodies) {
             const Body* target = bodyPtr.get(); // Dereference the unique_ptr to get the raw pointer
@@ -391,7 +391,7 @@ struct State {
 Vec2 computeAcceleration(const std::vector<std::unique_ptr<Body>>& bodies, const std::vector<State>& states, int i) {
     Vec2 acc = {0, 0};          // Initialize acceleration to zero.
     const float softening = 10.0f;  // Softening factor avoids singularities.
-    
+
     // Loop over every other body to sum their gravitational effect.
     for (int j = 0; j < states.size(); j++) {
         if (j == i) continue;   // Skip self.
@@ -416,7 +416,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
     int n = bodies.size();                 // Number of bodies.
     // Create vectors to hold the current state and the intermediate slopes.
     std::vector<State> s(n), k1(n), k2(n), k3(n), k4(n);
-    
+
     // Initialize state vector s using the current positions and velocities of bodies.
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {  // Check that the body exists.
@@ -424,7 +424,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             s[i].vel = bodies[i]->vel;
         }
     }
-    
+
     // --- Compute k1 = f(s)
     // Here, for each body, k1.pos is the current velocity,
     // and k1.vel is the computed acceleration at state s.
@@ -434,7 +434,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             k1[i].vel = computeAcceleration(bodies, s, i);
         }
     }
-    
+
     // Temporary state for RK4: s_temp = s + (k1 * dt/2)
     std::vector<State> s_temp(n);
     for (int i = 0; i < n; i++) {
@@ -443,7 +443,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             s_temp[i].vel = s[i].vel + k1[i].vel * (dt / 2.0f);
         }
     }
-    
+
     // --- Compute k2 = f(s + k1*dt/2)
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {
@@ -451,7 +451,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             k2[i].vel = computeAcceleration(bodies, s_temp, i);
         }
     }
-    
+
     // Recalculate s_temp = s + (k2 * dt/2) for k3 evaluation.
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {
@@ -459,7 +459,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             s_temp[i].vel = s[i].vel + k2[i].vel * (dt / 2.0f);
         }
     }
-    
+
     // --- Compute k3 = f(s + k2*dt/2)
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {
@@ -467,7 +467,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             k3[i].vel = computeAcceleration(bodies, s_temp, i);
         }
     }
-    
+
     // Recalculate s_temp = s + (k3 * dt) for k4 evaluation.
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {
@@ -475,7 +475,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             s_temp[i].vel = s[i].vel + k3[i].vel * dt;
         }
     }
-    
+
     // --- Compute k4 = f(s + k3*dt)
     for (int i = 0; i < n; i++) {
         if (bodies[i]) {
@@ -483,7 +483,7 @@ void rk4Step(std::vector<std::unique_ptr<Body>>& bodies, float dt) {
             k4[i].vel = computeAcceleration(bodies, s_temp, i);
         }
     }
-    
+
     // --- Combine the stages to update the state:
     // New state = s + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
     for (int i = 0; i < n; i++) {
@@ -544,10 +544,10 @@ int main(int argc, char* argv[]) {
 
     // Create a collection of celestial bodies. Typically a central massive "star" and orbiting bodies.
     std::vector<std::unique_ptr<Body>> bodies;
-    bodies.push_back(std::make_unique<Body>(100001, Vec2{0, 0}, Vec2{0, 50}, SDL_Color{255, 0, 0, 255}, 50));
-    bodies.push_back(std::make_unique<Body>(5000, Vec2{120, 0}, Vec2{26, 0}, SDL_Color{0, 255, 0, 255}, 8));
-    bodies.push_back(std::make_unique<Body>(2000, Vec2{200, 0}, Vec2{20, 0}, SDL_Color{0, 100, 255, 255}, 7));
-    bodies.push_back(std::make_unique<Body>(1000, Vec2{300, 0}, Vec2{15, 0}, SDL_Color{255, 200, 0, 255}, 6));
+    bodies.push_back(std::make_unique<Body>(100000, Vec2{0, 0}, Vec2{0, 5}, SDL_Color{255, 0, 0, 255}, 50));
+    bodies.push_back(std::make_unique<Body>(5000, Vec2{120, 0}, Vec2{260, 5}, SDL_Color{0, 255, 0, 255}, 8));
+    bodies.push_back(std::make_unique<Body>(2000, Vec2{200, 0}, Vec2{200, 4}, SDL_Color{0, 100, 255, 255}, 7));
+    bodies.push_back(std::make_unique<Body>(1000, Vec2{300, 0}, Vec2{150, 3}, SDL_Color{255, 200, 0, 255}, 6));
 
 
     // Set the simulation time step.
@@ -584,11 +584,12 @@ int main(int argc, char* argv[]) {
     // Main simulation and rendering loop.
     bool draggingPlanet = true;
     int selectedPlanetIndex = -1;
+    float grab_radius = 100.0f;
     Vec2 dragStartPos; // Where the drag began in world coordinates
     Vec2 dragPrevPos;  // Last frame's position while dragging
 
 
-    
+
     while (running) {
         SDL_Event event;
         // Process all pending events.
@@ -638,13 +639,14 @@ int main(int argc, char* argv[]) {
                         SDL_FPoint mousePos;
                         SDL_GetMouseState(&mousePos.x, &mousePos.y);
                         Vec2 worldPos = screenToWorld(mousePos.x, mousePos.y, winWidth, winHeight);
-                    
+
                         // Check if the mouse is over any planet
                         for (size_t i = 0; i < bodies.size(); ++i) {
                             Body* body = bodies[i].get();
                             float dx = worldPos.x - body->pos.x;
                             float dy = worldPos.y - body->pos.y;
-                            if (sqrt(dx * dx + dy * dy) <= body->radius) {
+                            float grabRadius = body->radius + grab_radius;
+                            if (sqrt(dx * dx + dy * dy) <= grabRadius) {
                                 draggingPlanet = true;
                                 selectedPlanetIndex = i;
                                 lastMouseX = mousePos.x;
@@ -656,27 +658,27 @@ int main(int argc, char* argv[]) {
                                 break;
                             }
                         }
-                    }                    
-                    
+                    }
+
                     break;
                 case SDL_EVENT_MOUSE_BUTTON_UP:    // Stop dragging when mouse button released.
                     if (event.button.button == SDL_BUTTON_LEFT) dragging = false;
-                    
+
                     if (event.button.button == SDL_BUTTON_RIGHT) {
                         if (draggingPlanet && selectedPlanetIndex != -1) {
                             SDL_FPoint mousePos;
                             SDL_GetMouseState(&mousePos.x, &mousePos.y);
                             Vec2 worldPos = screenToWorld(mousePos.x, mousePos.y, winWidth, winHeight);
-                        
+
                             // Calculate velocity based on drag difference
-                            Vec2 dragVelocity = (worldPos - dragStartPos) * 1.5f; // Tune the multiplier if needed
+                            Vec2 dragVelocity = (worldPos - dragStartPos) * 1.1f; // Tune the multiplier if needed
                             bodies[selectedPlanetIndex]->vel = dragVelocity;
                         }
                         draggingPlanet = false;
                         selectedPlanetIndex = -1;
-                        
+
                     }
-                    
+
                     case SDL_EVENT_MOUSE_MOTION:       // Handle mouse movement for panning and dragging.
                     if (dragging) {
                         int dx = event.motion.x - lastMouseX;
@@ -691,13 +693,14 @@ int main(int argc, char* argv[]) {
                         SDL_FPoint mousePos;
                         SDL_GetMouseState(&mousePos.x, &mousePos.y);
                         Vec2 worldPos = screenToWorld(mousePos.x, mousePos.y, winWidth, winHeight);
-                    
-                        // Update position and store last drag point
-                        bodies[selectedPlanetIndex]->pos = worldPos;
-                        dragPrevPos = worldPos;
+
+                        Body* body = bodies[selectedPlanetIndex].get();
+                        Vec2 toMouse = worldPos - body->pos;
+
+                        // Softly drag towards the mouse
+                        body->vel = toMouse * 3.0f; // Planet velocity towards mouse
+                        body->pos = body->pos + toMouse * 0.2f; // Lerp factor
                     }
-                                        
-                    
                     break;
             }
         }
@@ -725,15 +728,15 @@ int main(int argc, char* argv[]) {
         // and its velocity vector.
         for (const auto& body : bodies) {
             //debug line under
-            std::cout<<"is body visible? :"+to_string(body->isVisible)<<std::endl;
-            if (body->isVisible) { // Check if the body is 
+            //std::cout<<"is body visible? :"+to_string(body->isVisible)<<std::endl;
+            if (body->isVisible) { // Check if the body is
                 drawTrail(renderer, body.get(), winWidth, winHeight);
                 SDL_FPoint screenPos = toScreen(body->pos, winWidth, winHeight);
                 drawFilledCircle(renderer, screenPos.x, screenPos.y, body->radius * zoom, body->color);
                 drawVelocityVector(renderer, body->pos, body->vel, winWidth, winHeight);
             }
         }
-        
+
 
         handleCollisions(bodies);
 
