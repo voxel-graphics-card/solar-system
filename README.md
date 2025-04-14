@@ -4,6 +4,10 @@ A real-time 2D gravity simulation built in C++ using SDL3. This project simulate
 
  ![nice](https://github.com/user-attachments/assets/35b85514-7140-4373-9488-cd059e38127d)
 
+![nice2](https://github.com/user-attachments/assets/a2288115-2de5-4bcb-b894-31822c19dafa)
+
+ 
+
 
 ---
 
