@@ -59,5 +59,5 @@ A real-time 2D gravity simulation built in C++ using SDL3. This project simulate
 
 ##  Build Instructions on windows with MINGW
 
-g++ -std=c++17 -o gravity_sim *.cpp -lSDL3 -lSDL3_ttf
+g++ -I path/to/include -L path/to/lib -o grav2.exe grav2.cpp -lSDL3 -lSDL3_ttf
 ./gravity_sim
