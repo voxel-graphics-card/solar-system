@@ -24,7 +24,7 @@ std::string to_string(float value) {
 }
 
 // Global gravitational constant (G) used in the simulation; can be modified via keyboard.
-float G = 8.0f;
+float G = 9.0f;
 
 // 2D vector struct for positions, velocities, and other 2D computations.
 struct Vec2 {
@@ -77,7 +77,7 @@ public:
     SDL_Color color;            // Color for rendering the body.
     float radius;               // Radius of the body (used for drawing and collision approximations).
     std::vector<Vec2> trail;    // History of positions to draw motion trails.
-    size_t maxTrailLength = 1000;// Maximum number of positions stored in the trail.
+    size_t maxTrailLength = 500;// Maximum number of positions stored in the trail.
 
     // Constructor to initialize the body with its mass, position, velocity, color, and radius respectivly...
     Body(float m, Vec2 p, Vec2 v, SDL_Color col, float r)
@@ -119,13 +119,26 @@ Vec2 screenToWorld(int screenX, int screenY, int winWidth, int winHeight) {
 
 // Draw the trail (history of positions) for a given body.
 // For each position stored in the trail, convert from world to screen coordinates and draw a point.
-void drawTrail(SDL_Renderer* renderer, const Body* body, int winWidth, int winHeight) {
-    SDL_SetRenderDrawColor(renderer, body->color.r, body->color.g, body->color.b, 80);
-    for (const Vec2& p : body->trail) {
-        SDL_FPoint sp = toScreen(p, winWidth, winHeight);
-        SDL_RenderPoint(renderer, static_cast<int>(sp.x), static_cast<int>(sp.y));
+void drawTrail(SDL_Renderer* renderer, Body* body, int winWidth, int winHeight) {
+    SDL_SetRenderDrawColor(renderer, body->color.r, body->color.g, body->color.b, 100);
+
+    // Ensure we don't draw if there's less than 2 points
+    if (body->trail.size() < 2) return;
+
+    // Draw lines between trail points
+    for (size_t i = 1; i < body->trail.size(); ++i) {
+        SDL_FPoint p1 = toScreen(body->trail[i - 1], winWidth, winHeight);
+        SDL_FPoint p2 = toScreen(body->trail[i], winWidth, winHeight);
+        SDL_RenderLine(renderer, p1.x, p1.y, p2.x, p2.y);
+    }
+
+    // Trim old points if over max length
+    if (body->trail.size() > body->maxTrailLength) {
+        body->trail.erase(body->trail.begin(), body->trail.begin() + (body->trail.size() - body->maxTrailLength));
     }
 }
+
+
 
 #include <algorithm> // Include the <algorithm> header for std::remove_if
 #include <memory> // Include memory for std::unique_ptr
@@ -145,7 +158,7 @@ void cullBodies(std::vector<std::unique_ptr<Body>>& bodies, int winWidth, int wi
     float maxY = worldTopLeft.y; // Corrected to use top left for maxY
 
     // Use a margin to account for the maximum radius of bodies.
-    const float margin = 100.0f; // A fixed margin to ensure partial visibility is considered.
+    const float margin = 50.0f; // A fixed margin to ensure partial visibility is considered.
 
     // Adjust the bounding box with the margin.
     minX -= margin;
@@ -204,7 +217,7 @@ void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius, 
 // a gentle repulsive force is applied to push them apart.
 void handleCollisions(std::vector<std::unique_ptr<Body>>& bodies) {
     const float collisionBuffer = 0.05f;
-    const int maxIterations = 250;
+    const int maxIterations = 10;
     int iterations = 0;
     bool collisionDetected = true;
 
@@ -248,7 +261,7 @@ void handleCollisions(std::vector<std::unique_ptr<Body>>& bodies) {
                     float overlap = (rSum + collisionBuffer) - dist;
                     overlap = std::max(0.0f, overlap);
 
-                    float repulsionStrength = 2.0f;
+                    float repulsionStrength = 1.0f;
                     float repulseMag = std::min(overlap * repulsionStrength, 10.0f);
                     Vec2 repulse = dir * repulseMag;
 
@@ -290,7 +303,7 @@ void drawLightRays(SDL_Renderer* renderer, std::vector<std::unique_ptr<Body>>& b
     SDL_FPoint starScreen = toScreen(star->pos, winWidth, winHeight);
 
     const int rayCount = 360;       // Total number of rays to draw in a full circle.
-    const float rayLength = 600.0f;   // Length (in world units) to which each ray extends.
+    const float rayLength = 1000.0f;   // Length (in world units) to which each ray extends.
     SDL_SetRenderDrawColor(renderer, star->color.r, star->color.g, star->color.b, 30); // Set a light of the color of star with transparency for the rays.
 
     // Loop through and draw each ray.
@@ -332,9 +345,18 @@ void drawLightRays(SDL_Renderer* renderer, std::vector<std::unique_ptr<Body>>& b
 void resetSimulation(std::vector<std::unique_ptr<Body>>& bodies) {
     bodies.clear();
 
-    bodies.push_back(std::make_unique<Body>(100000, Vec2{0, 0}, Vec2{0, 0}, SDL_Color{255, 255, 0, 255}, 20));
-    bodies.push_back(std::make_unique<Body>(500, Vec2{200, 0}, Vec2{0, 70}, SDL_Color{0, 150, 255, 255}, 5));
-    bodies.push_back(std::make_unique<Body>(500, Vec2{250, 0}, Vec2{0, 85}, SDL_Color{255, 100, 100, 255}, 3));
+    bodies.push_back(std::make_unique<Body>(
+    100000, Vec2{0, 0}, Vec2{0, 0}, SDL_Color{255, 0, 0, 255}, 50));  // Central body
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{150, 0}, Vec2{0, 70.8}, SDL_Color{0, 255, 0, 255}, 6));  // Inner orbit
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{250, 0}, Vec2{0, 60.0}, SDL_Color{0, 100, 255, 255}, 6));  // Middle orbit
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{400, 0}, Vec2{0, 54.8}, SDL_Color{255, 200, 0, 255}, 6));  // Outer orbit
+
 }
 
 
@@ -544,10 +566,18 @@ int main(int argc, char* argv[]) {
 
     // Create a collection of celestial bodies. Typically a central massive "star" and orbiting bodies.
     std::vector<std::unique_ptr<Body>> bodies;
-    bodies.push_back(std::make_unique<Body>(100000, Vec2{0, 0}, Vec2{0, 5}, SDL_Color{255, 0, 0, 255}, 50));
-    bodies.push_back(std::make_unique<Body>(5000, Vec2{120, 0}, Vec2{260, 5}, SDL_Color{0, 255, 0, 255}, 8));
-    bodies.push_back(std::make_unique<Body>(2000, Vec2{200, 0}, Vec2{200, 4}, SDL_Color{0, 100, 255, 255}, 7));
-    bodies.push_back(std::make_unique<Body>(1000, Vec2{300, 0}, Vec2{150, 3}, SDL_Color{255, 200, 0, 255}, 6));
+
+    bodies.push_back(std::make_unique<Body>(
+    100000, Vec2{0, 0}, Vec2{0, 0}, SDL_Color{255, 0, 0, 255}, 50));  // Central body
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{150, 0}, Vec2{0, 70.8}, SDL_Color{0, 255, 0, 255}, 6));  // Inner orbit
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{250, 0}, Vec2{0, 60.0}, SDL_Color{0, 100, 255, 255}, 6));  // Middle orbit
+
+    bodies.push_back(std::make_unique<Body>(
+        1000, Vec2{400, 0}, Vec2{0, 54.8}, SDL_Color{255, 200, 0, 255}, 6));  // Outer orbit
 
 
     // Set the simulation time step.
@@ -584,7 +614,7 @@ int main(int argc, char* argv[]) {
     // Main simulation and rendering loop.
     bool draggingPlanet = true;
     int selectedPlanetIndex = -1;
-    float grab_radius = 100.0f;
+    float grab_radius = 10.0f;
     Vec2 dragStartPos; // Where the drag began in world coordinates
     Vec2 dragPrevPos;  // Last frame's position while dragging
 
